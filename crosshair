@@ -1,0 +1,9 @@
+local screen_size = g_EngineClient.GetScreenSize()
+local color_picker = cheat.Color("Choose your crosshair color")
+local font_size = 48
+local font = g_Render.InitFont("Arial", font_size)
+local function on_draw()
+    local text_size = g_Render.CalcTextSize("+", font_size, font)
+    g_Render.Text("+", Vector2.new(screen_size.x / 2 - text_size.x / 2, screen_size.y / 2 - text_size.y / 2), color_picker:GetColor(), font_size, false)
+end
+cheat.RegisterCallback("draw", on_draw)
