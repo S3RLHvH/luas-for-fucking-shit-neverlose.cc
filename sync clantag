@@ -1,0 +1,54 @@
+ffi.cdef[[
+    typedef int(__fastcall* clantag_t)(const char*, const char*);
+]]
+
+local set_clantag = ffi.cast("clantag_t", Utils.PatternScan("engine.dll", "53 56 57 8B DA 8B F9 FF 15"))
+
+local tag = {
+[1] = "N",
+[2] = "Ne",
+[3] = "Nev",
+[4] = "Neve",
+[5] = "Never",
+[6] = "Neverl",
+[7] = "Neverlo",
+[8] = "Neverlos",
+[9] = "Neverlose",
+[10] = "Neverlose",
+[11] = "Neverlose",
+[12] = "Neverlose",
+[13] = "Neverlose",
+[14] = "Neverlos",
+[15] = "Neverlo",
+[16] = "Neverl",
+[17] = "Never",
+[18] = "Neve",
+[19] = "Nev",
+[20] = "Ne",
+[21] = "N",
+[22] = "",
+}
+
+local function mod(a, b)
+  return a - math.floor(a/b)*b
+end
+
+local function paint()
+  if g_EngineClient.IsConnected() then
+    local netchann_info = g_EngineClient.GetNetChannelInfo()
+  if netchann_info == nil then 
+    return
+  end
+
+  local raw_latency = netchann_info:GetLatency(0)
+  local latency = raw_latency / g_GlobalVars.interval_per_tick
+  local tickcount_pred = g_GlobalVars.tickcount + latency
+  local iter = math.floor(mod(tickcount_pred / 25, #tag))
+  if iter ~= last_tag_iter then 
+    set_clantag(tag[iter], tag[iter])
+    last_tag_iter = iter
+  end
+  end
+end
+
+cheat.RegisterCallback("draw", paint)
