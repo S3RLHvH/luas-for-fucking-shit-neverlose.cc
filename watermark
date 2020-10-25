@@ -1,0 +1,154 @@
+local font = g_Render.InitFont("segoeui",15,300)
+
+local frame_rate = 0.0
+local function get_abs_fps()
+    frame_rate = 0.9 * frame_rate + (1.0 - 0.9) * g_GlobalVars.absoluteframetime
+    return math.floor((1.0 / frame_rate) + 0.5)
+end
+
+local textSize = 0
+local sSize = g_EngineClient.GetScreenSize()
+local tClr = Color.new(255, 255, 255)
+local color_picker = cheat.Color("Choose your TOP color")
+local color2_picker = cheat.Color("Choose your BG color")
+
+local function get_latency()
+	local netchann_info = g_EngineClient.GetNetChannelInfo()
+	if netchann_info == nil then return "0" end
+	local latency = netchann_info:GetLatency(0)
+	return string.format("%1.f", math.max(0.0, latency) * 1000.0)
+  end
+  local real_rotation = 0.0
+  local fake_fraction = 0.0
+  local function norm(angle)
+	local angle = math.fmod( angle, 360.0 )
+  
+	return angle
+  end
+  
+  local function render_circle(center, radius, clr, delim)
+	  local points = math.pi * radius / 2
+	  local step = math.pi * 2.0 / points
+	  
+	  local iter_end = math.pi * 2.0 / 4 * delim
+	   
+	  if delim == 0 then return false end
+  
+	  for i = 0, iter_end, step do
+		  local v_start = Vector2.new(radius * math.cos(i) + center.x, radius * math.sin(i) + center.y)
+		  local v_end = Vector2.new(radius * math.cos(i + step) + center.x, radius * math.sin(i + step) + center.y)
+		  
+		  g_Render.Line(v_start, v_end, clr)
+	  end
+  end
+  
+  local function paint_indicator(x, y, value, max, name)
+	  if value > max then
+		  value = max
+	  end
+	  
+	  local text_sz = g_Render.CalcTextSize(name, 29, font)
+  
+	  value = value * 255
+	  local red_col = (255 - value) / 255
+	  local gre_col = value / 255
+	  local blu_col = 0
+	  value = value / 255
+	  g_Render.Text(name, Vector2.new(x, y), Color.new(red_col, gre_col, blu_col, 1), 29, font, false)
+	  render_circle(Vector2.new(x + text_sz.x + 1622, y - 758), 5, Color.new(0, 0, 0, 255),(4))
+	  render_circle(Vector2.new(x + text_sz.x + 1622, y - 758), 6,  Color.new(0, 0, 0, 255),(4))
+  
+	  render_circle(Vector2.new(x + text_sz.x + 1622, y - 758), 5,  Color.new(255, 255, 255, 255), value / (max / 4))
+	  render_circle(Vector2.new(x + text_sz.x + 1622, y - 758), 6,  Color.new(255, 255, 255, 255), value / (max / 4))
+  end
+  
+  local function get_height()
+	  local le_idx = g_EngineClient.GetLocalPlayer()
+	  local le = g_EntityList.GetClientEntity(le_idx)
+	  if le == nil then return 0 end
+	  local lp = le:GetPlayer()
+  
+	  return (1.0 - lp:m_flDuckAmount()) * 100
+  
+  end
+  
+  local function createmove(pCmd)
+	if g_ClientState.m_choked_commands == 0 then
+	  real_rotation = AntiAim.GetCurrentRealRotation()
+  
+	end
+  
+	local max_delta = AntiAim.GetMaxDesyncDelta() + math.abs(  AntiAim.GetMinDesyncDelta() )
+	local delta = math.abs(norm(real_rotation - AntiAim.GetFakeRotation())) / max_delta;
+	if delta > 1.0 then
+	  delta = 1.0
+  
+	end
+	
+	fake_fraction = delta
+  
+  end
+  
+local function draw()
+	local ping = get_latency()
+	local ticks = math.floor(1.0 / g_GlobalVars.interval_per_tick)
+	local fps = get_abs_fps()
+
+	
+	local posx = sSize.x - 10
+	local posy = 4
+	local posx1 = 0
+	local posy1 = 0
+
+	if g_EngineClient.IsConnected() then
+        local me = g_EntityList.GetClientEntity(g_EngineClient.GetLocalPlayer())
+        local localPlayer = me:GetPlayer()
+
+        local weapon_handle = me:GetProp("DT_BaseCombatCharacter", "m_hActiveWeapon")
+        local weapon_ent = g_EntityList.GetClientEntityFromHandle(weapon_handle)
+        if weapon_ent == nil then
+          return 0
+        end
+        
+        local weapon = localPlayer:GetActiveWeapon()
+
+        is_valid = not weapon:IsKnife() and not weapon:IsGrenade()
+
+        current_weapon_id = weapon:GetWeaponID()
+    end
+
+---------------watermark-box-and-line---------------
+    g_Render.BoxFilled(Vector2.new(posx -1, posy + 10), Vector2.new(posx - 290, posy + 40), color2_picker:GetColor())
+    g_Render.BoxFilled(Vector2.new(posx + -2, posy + 35), Vector2.new(posx - 289, posy + 41), color2_picker:GetColor())
+	g_Render.BoxFilled(Vector2.new(posx + -3, posy + 36), Vector2.new(posx - 288, posy + 42), color2_picker:GetColor())
+	g_Render.BoxFilled(Vector2.new(posx + -1, posy + 6), Vector2.new(posx - 290, posy + 10), color_picker:GetColor())
+	g_Render.BoxFilled(Vector2.new(posx + -2, posy + 5), Vector2.new(posx - 289, posy + 10), color_picker:GetColor())
+	g_Render.BoxFilled(Vector2.new(posx + -3, posy + 4), Vector2.new(posx - 288, posy + 10), color_picker:GetColor())
+	paint_indicator(10, 787, fake_fraction, 1.0,"") -- Название (Например : FAKE YAW)
+---------------box-for-icon---------------
+g_Render.BoxFilled(Vector2.new(posx + -1, posy + 55), Vector2.new(posx - 100, posy + 90), color2_picker:GetColor())
+g_Render.BoxFilled(Vector2.new(posx + -2, posy + 52), Vector2.new(posx - 99, posy + 91), color2_picker:GetColor())
+g_Render.BoxFilled(Vector2.new(posx + -2, posy + 51), Vector2.new(posx - 99, posy + 92), color2_picker:GetColor())
+g_Render.BoxFilled(Vector2.new(posx + -4, posy + 50), Vector2.new(posx - 97, posy + 93), color2_picker:GetColor())
+----------------------------------------------------------------------------------------------------------------------------
+g_Render.BoxFilled(Vector2.new(posx + -1, posy + 55), Vector2.new(posx - 100, posy + 53), color_picker:GetColor())	
+g_Render.BoxFilled(Vector2.new(posx + -2, posy + 52), Vector2.new(posx - 99, posy + 53), color_picker:GetColor())
+g_Render.BoxFilled(Vector2.new(posx + -2, posy + 51), Vector2.new(posx - 99, posy + 53), color_picker:GetColor())
+g_Render.BoxFilled(Vector2.new(posx + -4, posy + 50), Vector2.new(posx - 97, posy + 53), color_picker:GetColor())
+---------------icon---------------
+g_Render.WeaponIcon(current_weapon_id or 0, Vector2.new(posx1 + 1820, posy1 + 65), Color.new(1.0, 1.0, 1.0), 30, false)
+local icon_size = g_Render.CalcWeaponIconSize(current_weapon_id or 0, 45)
+---------------Text---------------
+	g_Render.Text("PING : " .. ping, Vector2.new(posx - 59, posy + 19), tClr, 12, font, false) 
+	g_Render.Text("TICK : " .. ticks, Vector2.new(posx - 185, posy + 19), tClr, 12, font, false) 
+	g_Render.Text("Neverlose.cc", Vector2.new(posx - 260, posy + 19), tClr, 12, font, false) 
+	g_Render.Text("FPS : "..fps, Vector2.new(posx - 197 + 73, posy + 19), tClr, 12, font, false) 
+
+	g_Render.Text("|", Vector2.new(posx - 190, posy + 18), tClr, 12, false)
+	g_Render.Text("|", Vector2.new(posx - 70, posy + 18), tClr, 12, false)
+	g_Render.Text("|", Vector2.new(posx - 133, posy + 18), tClr, 12, false)
+	g_Render.Text("|", Vector2.new(posx - 265, posy + 18), tClr, 12, false)
+end
+
+cheat.RegisterCallback("draw", draw)
+cheat.RegisterCallback("prediction", createmove)
