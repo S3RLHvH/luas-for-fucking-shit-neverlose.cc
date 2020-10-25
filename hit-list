@@ -1,0 +1,174 @@
+ ffi.cdef[[
+	short GetAsyncKeyState(int vKey);
+ ]]
+ 
+ local function GetAsyncKeyState(vk)
+	return bit.band(ffi.C.GetAsyncKeyState(vk), 0x8000) ~= 0
+ end
+
+local color_picker = cheat.Color("Choose your line color")
+local color2_picker = cheat.Color("Choose your box color")
+
+ local screenSize = g_EngineClient.GetScreenSize()
+ local dLog = {}
+ local textClr = Color.new(255, 255, 255)
+ local posx = 570
+ local posy = 570
+ 
+ local cursor_last_pos = Vector2.new(0, 0)
+ local was_hovered = false
+ 
+ local rainbow_value = 0.0
+ local cp_Hit = cheat.Color("Hit (Color)")
+ local cp_Miss = cheat.Color("Miss (Color)")
+ cp_Hit:SetColor(Color.new(0, 255, 0))
+ cp_Miss:SetColor(Color.new(255, 0, 0))
+
+ local sf_limit = cheat.SliderFloat("quantity of lines", 1, 5)
+ sf_limit:setFloat(3)
+ 
+ local hboxes = {
+    "head",
+    "chest",
+    "stomach",
+    "left arm",
+    "right arm",
+    "left leg",
+    "right leg",
+    "body"
+}
+local reasons = {
+	[0] = "hit",
+	[1] = "resolver",
+	[2] = "spread",
+	[3] = "occlusion"
+}
+local types = {
+	[0] = "Hit",
+	[1] = "Miss"
+}
+
+ local function get_limit()
+	return math.floor(sf_limit:GetFloat())
+ end
+ 
+ local function logSize()
+	local lSize = #dLog
+	if lSize > get_limit() then
+		lSize = get_limit()
+	end
+	return lSize
+ end
+ 
+ local function prepare_table()
+	for i = 10, 2, -1 do
+		dLog[i] = dLog[i-1]
+	end
+	if #dLog > 10 then
+		table.remove(dLog, 11)
+	end
+ end
+ 
+ local function on_event(shot)
+	local eVictim = g_EntityList.GetClientEntity(shot.target_index)
+	if eVictim == nil then return end
+	eVictim = eVictim:GetPlayer()
+
+	prepare_table()
+	
+	local logType = 0
+	if shot.reason ~= 0 then
+		logType = 1
+	end
+	local logReason = reasons[shot.reason]
+	if logReason == "hit" then logReason = "registered" end
+	
+	local hbox = hboxes[shot.hitgroup]
+	if hbox == nil then print(""..tostring(shot.hitgroup).."") end
+	
+	dLog[1] = {
+		["type"] = logType,
+		["player"] = string.sub(eVictim:GetName(), 0, 4),
+		["damage"] = shot.damage,
+		["hitgroup"] = hbox,
+		["reason"] = logReason,
+		["backtrack"] = shot.backtrack
+	}
+ end
+ 
+ local function draw() 
+
+local size = 18 + 18 * logSize()
+	
+	if cheat.IsMenuVisible() then
+		local cursor_pos = cheat.GetMousePos()
+		if GetAsyncKeyState(0x01) then
+		
+		   if cursor_pos.x >= posx and
+		   cursor_pos.y >= posy - 20 and
+		   cursor_pos.x <= (posx + 355) and
+		   cursor_pos.y <= (posy + size) then
+			   was_hovered = true
+		   end
+		   
+		   if was_hovered then
+			   posx = posx + (cursor_pos.x - cursor_last_pos.x)
+			   posy = posy + (cursor_pos.y - cursor_last_pos.y)
+		   end
+		else
+			was_hovered = false
+		end
+		cursor_last_pos = cursor_pos
+	end
+	-------------------------------------------------------------------------------------------------------------------------------------
+	g_Render.BoxFilled(Vector2.new(posx, posy + 18), Vector2.new(posx + 355, posy + size), Color.new(34 / 255, 34 / 255, 39 / 255, 150 / 255))
+	g_Render.BoxFilled(Vector2.new(posx, posy + 18), Vector2.new(posx + 355, posy + 17), color2_picker:GetColor()) --Box
+	g_Render.BoxFilled(Vector2.new(posx + 0, posy + 17), Vector2.new(posx + 355, posy + 14), color_picker:GetColor()) --Line
+	g_Render.BoxFilled(Vector2.new(posx + 0, posy + 17), Vector2.new(posx + 355, posy + 13), color_picker:GetColor()) --Line
+	g_Render.BoxFilled(Vector2.new(posx + 0.9, posy + 17), Vector2.new(posx + 354, posy + 12), color_picker:GetColor()) --Line
+	-------------------------------------------------------------------------------------------------------------------------------------
+	g_Render.BoxFilled(Vector2.new(posx, posy), Vector2.new(posx + 355, posy + -15), color2_picker:GetColor()) --Box
+	-------------------------------------------------------------------------------------------------------------------------------------
+	g_Render.BoxFilled(Vector2.new(posx + 0, posy), Vector2.new(posx + 355, posy + 1), color_picker:GetColor()) --Line down
+	g_Render.BoxFilled(Vector2.new(posx + 0, posy), Vector2.new(posx + 355, posy + 2), color_picker:GetColor()) --Line down
+	g_Render.BoxFilled(Vector2.new(posx + 0.9, posy), Vector2.new(posx + 354, posy + 3), color_picker:GetColor()) --Line down
+	g_Render.BoxFilled(Vector2.new(posx + 2, posy), Vector2.new(posx + 353, posy + 4), color_picker:GetColor()) --Line down
+	-------------------------------------------------------------------------------------------------------------------------------------
+	g_Render.BoxFilled(Vector2.new(posx + 0, posy - 15), Vector2.new(posx + 355, posy - 17), color_picker:GetColor()) --Line
+	g_Render.BoxFilled(Vector2.new(posx + 0, posy - 15), Vector2.new(posx + 355, posy - 18), color_picker:GetColor()) --Line
+	g_Render.BoxFilled(Vector2.new(posx + 0.9, posy - 15), Vector2.new(posx + 354, posy - 19), color_picker:GetColor()) --Line
+	g_Render.BoxFilled(Vector2.new(posx + 2, posy - 15), Vector2.new(posx + 353, posy - 20), color_picker:GetColor()) --Line
+	-------------------------------------------------------------------------------------------------------------------------------------
+	g_Render.Text("Type", Vector2.new(posx + 6, posy + -15), textClr, 12, false) 
+	g_Render.Text("Player", Vector2.new(posx + 6 + 44, posy + -15), textClr, 12, false) 
+	g_Render.Text("Damage", Vector2.new(posx + 6 + 44 + 51, posy + -15), textClr, 12, false) 
+	g_Render.Text("Hitgroup", Vector2.new(posx + 6 + 44 + 51 + 60, posy + -15), textClr, 12, false) 
+	g_Render.Text("Reason", Vector2.new(posx + 6 + 44 + 51 + 60 + 65, posy + -15), textClr, 12, false)
+	g_Render.Text("Backtrack", Vector2.new(posx + 6 + 44 + 51 + 60 + 65 + 62, posy + -15), textClr, 12, false)
+
+	for i = 1, logSize(), 1 do
+        local data = dLog[i]
+
+        if data then
+			local pitch = posx + 10
+            local yaw = posy + 18 + (i - 1) * 18 + 2
+
+			local lClr = cp_Hit:GetColor()
+			if data.type == 1 then
+				lClr = cp_Miss:GetColor()
+			end
+			
+			g_Render.BoxFilled(Vector2.new(posx, yaw - 1), Vector2.new(posx + 2, yaw + 16), lClr)
+
+			g_Render.Text(types[data.type], Vector2.new(pitch + 3, yaw), textClr, 12, false) 
+			g_Render.Text(data.player, Vector2.new(pitch + 3 + 44, yaw), textClr, 12, false) 
+			g_Render.Text(tostring(data.damage), Vector2.new(pitch + 3 + 44 + 51, yaw), textClr, 12, false) 
+			g_Render.Text(data.hitgroup, Vector2.new(pitch + 3 + 44 + 51 + 54, yaw), textClr, 12, false) 
+			g_Render.Text(data.reason, Vector2.new(pitch + 3 + 44 + 51 + 54 + 64, yaw), textClr, 12, false) 
+			g_Render.Text(tostring(data.backtrack).." ticks", Vector2.new(pitch + 3 + 44 + 51 + 54 + 64 + 85 - 18, yaw), textClr, 12, false)
+		end
+    end
+ end
+ 
+ cheat.RegisterCallback("registered_shot", on_event)
+ cheat.RegisterCallback("draw", draw)
